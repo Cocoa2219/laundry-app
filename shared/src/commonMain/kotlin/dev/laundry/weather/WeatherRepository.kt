@@ -40,6 +40,13 @@ class WeatherRepository(
         }
     }
 
+    /**
+     * Hourly weather including the last [pastDays] days, for recording what actually happened.
+     * Not cached and no fallback: callers decide what to do when it fails.
+     */
+    suspend fun getPastHours(point: GeoPoint, pastDays: Int): List<HourlyWeather> =
+        parse(client.fetchForecastJson(point, pastDays), clock.now(), fromCache = false).hourly
+
     private suspend fun cachedForecastFor(point: GeoPoint): Forecast? {
         val cached = cache.read() ?: return null
         if (!cached.point.isNear(point)) return null

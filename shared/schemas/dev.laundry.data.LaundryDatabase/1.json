@@ -1,0 +1,99 @@
+{
+  "formatVersion": 1,
+  "database": {
+    "version": 1,
+    "identityHash": "927ba2b7b9961282ac54189671080b00",
+    "entities": [
+      {
+        "tableName": "hangs",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `fabric` TEXT NOT NULL, `crowding` TEXT NOT NULL, `spot` TEXT NOT NULL, `latitude` REAL NOT NULL, `longitude` REAL NOT NULL, `hangTime` TEXT NOT NULL, `predictedFinish` TEXT, `checkTime` TEXT, `result` TEXT, `actualFinish` TEXT, `weatherJson` TEXT NOT NULL, `weatherSource` TEXT NOT NULL)",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "fabric",
+            "columnName": "fabric",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "crowding",
+            "columnName": "crowding",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "spot",
+            "columnName": "spot",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "latitude",
+            "columnName": "latitude",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "longitude",
+            "columnName": "longitude",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "hangTime",
+            "columnName": "hangTime",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "predictedFinish",
+            "columnName": "predictedFinish",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "checkTime",
+            "columnName": "checkTime",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "result",
+            "columnName": "result",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "actualFinish",
+            "columnName": "actualFinish",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "weatherJson",
+            "columnName": "weatherJson",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "weatherSource",
+            "columnName": "weatherSource",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        }
+      }
+    ],
+    "setupQueries": [
+      "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '927ba2b7b9961282ac54189671080b00')"
+    ]
+  }
+}
