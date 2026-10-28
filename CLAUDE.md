@@ -46,7 +46,14 @@ GET https://api.open-meteo.com/v1/forecast
   &wind_speed_unit=ms
   &timezone=auto
   &forecast_days=2
+  &models=jma_msm,best_match
 ```
+
+Model choice (target region: Korea), checked 2026-10-28:
+- `jma_msm` (JMA MSM, 5 km) covers Korea and Japan and supplies temperature, humidity, wind and radiation, but never `precipitation_probability`.
+- `best_match` supplies rain probability, fills any MSM gaps, and replaces MSM entirely outside its domain.
+- Per field and hour, take the first non-null of `<field>_jma_msm`, `<field>_best_match`, `<field>`. Outside the MSM domain Open-Meteo returns unsuffixed keys.
+- Not used: Open-Meteo's KMA models (no data since 2026-04-02; every value is null), KMA's own API (needs a key, no solar radiation), Singapore NEA (no hourly numeric forecast).
 
 No API key. Cache the last successful response; fall back to it when offline.
 
