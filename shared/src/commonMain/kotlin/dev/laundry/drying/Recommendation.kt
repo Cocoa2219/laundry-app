@@ -54,6 +54,15 @@ data class Recommendation(
     val why: Why,
     /** Every outdoor start considered, in time order; empty when [Load.spot] is INDOOR. */
     val options: List<StartOption>,
+    /** Only when [Load.spot] is INDOOR and an open yard would be HANG_OUT today. */
+    val outdoorAlternative: OutdoorAlternative? = null,
+)
+
+/** A better outdoor option to mention when the user chose to dry indoors. */
+data class OutdoorAlternative(
+    val spot: Spot,
+    val hangBy: LocalDateTime,
+    val inBy: LocalDateTime,
 )
 
 // Initial estimates, like the physics constants.
@@ -74,7 +83,8 @@ fun recommend(
 ): Recommendation {
     val indoorCorrection = corrections[Spot.INDOOR] ?: 1.0
     if (load.spot == Spot.INDOOR) {
-        return dryIndoors(forecast, load, now, indoorCorrection, options = emptyList(), why = INDOOR_WHY)
+        val indoor = dryIndoors(forecast, load, now, indoorCorrection, options = emptyList(), why = INDOOR_WHY)
+        return indoor.copy(outdoorAlternative = outdoorAlternative(forecast, load, now, corrections))
     }
 
     val correction = corrections[load.spot] ?: 1.0
@@ -101,6 +111,22 @@ fun recommend(
 }
 
 private val INDOOR_WHY = Why(Conditions(INDOOR_RH_PERCENT, 0.0, 0.0), cutoff = null)
+
+/**
+ * The open yard is the best case outdoors, so if even it is not a clear HANG_OUT, nothing is
+ * suggested. RISKY is not offered: pushing someone outside for a borderline day is worse than
+ * saying nothing.
+ */
+private fun outdoorAlternative(
+    forecast: Forecast,
+    load: Load,
+    now: LocalDateTime,
+    corrections: Map<Spot, Double>,
+): OutdoorAlternative? {
+    val yard = recommend(forecast, load.copy(spot = Spot.OPEN_YARD), now, corrections)
+    if (yard.verdict != Verdict.HANG_OUT) return null
+    return OutdoorAlternative(Spot.OPEN_YARD, hangBy = yard.hangBy!!, inBy = yard.inBy!!)
+}
 
 /** INDOOR when drying inside from [now] takes at most 12 hours, otherwise DRYER. */
 private fun dryIndoors(

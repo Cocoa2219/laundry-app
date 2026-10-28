@@ -146,6 +146,28 @@ class RecommendationTest {
     }
 
     @Test
+    fun indoorSpot_goodOutdoorDay_suggestsTheYard() {
+        val rec = recommend(forecast(), towelInYard.copy(spot = Spot.INDOOR), morning)
+
+        assertEquals(OutdoorAlternative(Spot.OPEN_YARD, hangBy = at(14), inBy = at(12, 12)), rec.outdoorAlternative)
+    }
+
+    @Test
+    fun indoorSpot_riskyOrBadOutdoorDay_suggestsNothing() {
+        val tight = forecast(weather(rhPercent = 55.0, radiationWm2 = 0.0), sunsetHour = 13)
+        val saturated = forecast(weather(rhPercent = 100.0))
+        val towelIndoors = towelInYard.copy(spot = Spot.INDOOR)
+
+        assertNull(recommend(tight, towelIndoors, morning).outdoorAlternative)
+        assertNull(recommend(saturated, towelIndoors, morning).outdoorAlternative)
+    }
+
+    @Test
+    fun outdoorSpot_neverCarriesAnAlternative() {
+        assertNull(recommend(forecast(), towelInYard, morning).outdoorAlternative)
+    }
+
+    @Test
     fun indoorSpot_slowLoad_dryer() {
         assertEquals(Verdict.DRYER, recommend(forecast(), beddingInYard.copy(spot = Spot.INDOOR), morning).verdict)
     }
