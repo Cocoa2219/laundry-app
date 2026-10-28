@@ -298,9 +298,10 @@ If a task seems to need one of these, stop and ask.
 ## Commands
 
 ```
-./gradlew :shared:jvmTest            # logic tests
-./gradlew :androidApp:assembleDebug  # build the APK
-./gradlew :androidApp:installDebug   # run on device/emulator
+./gradlew :shared:jvmTest                  # logic tests
+./gradlew :androidApp:testDebugUnitTest    # ViewModel tests (JVM)
+./gradlew :androidApp:assembleDebug        # build the APK
+./gradlew :androidApp:installDebug         # run on device/emulator
 ```
 
 Task names verified on 2026-10-28.
@@ -309,6 +310,12 @@ Environment:
 - Run Gradle with JDK 25 (Android Studio's bundled JBR, e.g. `JAVA_HOME="C:/Program Files/Android/Android Studio/jbr"`). The JDK 26 on PATH is untested with this toolchain.
 - Needs Android SDK Platform 37.2 (`sdkmanager "platforms;android-37.2"`): Compose 1.13.0-beta01 requires compileSdk 37.1+, set via `compileSdkMinor`.
 - `local.properties` holds `sdk.dir` and is not committed.
+
+Test device: Windows Subsystem for Android (Android 13).
+- `adb connect localhost:58526`. It listens on IPv6 only, so `127.0.0.1` is refused; right after WSA starts, retry a few times while it boots.
+- `adb shell input tap` does not reach app windows (focus stays on WSA's placeholder activity), so UI interaction is checked by hand.
+- Screenshots: `adb exec-out screencap -p > file.png`. In Git Bash, set `MSYS_NO_PATHCONV=1` for commands with device paths like `/sdcard`.
+- Location comes from Windows via the passive provider; there is no network location provider.
 
 ## Working rules
 
