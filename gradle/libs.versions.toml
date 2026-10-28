@@ -1,0 +1,30 @@
+[versions]
+agp = "9.4.1"
+kotlin = "2.4.21"
+# Beta on purpose: 1.13.0-beta01 is the first CMP Material3 with the full
+# M3 Expressive component set (ButtonGroup, LoadingIndicator, toolbars).
+# Stable 1.9.0 only has MaterialExpressiveTheme and motion.
+compose-multiplatform = "1.13.0-beta01"
+compose-material3 = "1.13.0-beta01"
+androidx-activity = "1.13.0"
+android-compileSdk = "37"
+# Compose 1.13 beta requires Android API 37.1+; platform 37.2 is installed.
+android-compileSdkMinor = "2"
+android-targetSdk = "37"
+android-minSdk = "26"
+
+[libraries]
+androidx-activity-compose = { module = "androidx.activity:activity-compose", version.ref = "androidx-activity" }
+compose-runtime = { module = "org.jetbrains.compose.runtime:runtime", version.ref = "compose-multiplatform" }
+compose-foundation = { module = "org.jetbrains.compose.foundation:foundation", version.ref = "compose-multiplatform" }
+compose-ui = { module = "org.jetbrains.compose.ui:ui", version.ref = "compose-multiplatform" }
+compose-uiToolingPreview = { module = "org.jetbrains.compose.ui:ui-tooling-preview", version.ref = "compose-multiplatform" }
+compose-uiTooling = { module = "org.jetbrains.compose.ui:ui-tooling", version.ref = "compose-multiplatform" }
+compose-material3 = { module = "org.jetbrains.compose.material3:material3", version.ref = "compose-material3" }
+kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
+
+[plugins]
+android-application = { id = "com.android.application", version.ref = "agp" }
+android-multiplatform-library = { id = "com.android.kotlin.multiplatform.library", version.ref = "agp" }
+kotlin-multiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
+compose-compiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }

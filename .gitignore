@@ -1,0 +1,19 @@
+# Build outputs
+build/
+**/build/
+out/
+
+# Gradle and Kotlin caches
+.gradle/
+.kotlin/
+
+# Local SDK config and secrets
+local.properties
+*.jks
+*.keystore
+
+# IDE
+.idea/
+*.iml
+.DS_Store
+captures/
