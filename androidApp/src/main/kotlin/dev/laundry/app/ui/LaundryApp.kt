@@ -2,8 +2,15 @@ package dev.laundry.app.ui
 
 import android.Manifest
 import android.content.pm.PackageManager
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -12,8 +19,10 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.laundry.app.ui.input.CityDialog
 import dev.laundry.app.ui.input.InputScreen
+import dev.laundry.app.ui.result.ResultScreen
 
 /** App host: the only composable that touches the ViewModel. */
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun LaundryApp(viewModel: LaundryViewModel) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -34,18 +43,36 @@ fun LaundryApp(viewModel: LaundryViewModel) {
         }
     }
 
-    InputScreen(
-        load = state.load,
-        location = state.location,
-        checking = state.checking,
-        canCheck = state.canCheck,
-        checkFailed = state.checkFailed,
-        onFabricSelected = viewModel::selectFabric,
-        onCrowdingSelected = viewModel::selectCrowding,
-        onSpotSelected = viewModel::selectSpot,
-        onLocationClick = viewModel::openCityDialog,
-        onCheck = viewModel::check,
-    )
+    BackHandler(enabled = state.showingResult, onBack = viewModel::closeResult)
+
+    val motion = MaterialTheme.motionScheme
+    AnimatedContent(
+        targetState = state.showingResult,
+        transitionSpec = { fadeIn(motion.defaultEffectsSpec()) togetherWith fadeOut(motion.fastEffectsSpec()) },
+        label = "screen",
+    ) { showingResult ->
+        if (showingResult) {
+            ResultScreen(
+                load = state.load,
+                checking = state.checking,
+                failed = state.checkFailed,
+                result = state.result,
+                onBack = viewModel::closeResult,
+                onRetry = viewModel::check,
+            )
+        } else {
+            InputScreen(
+                load = state.load,
+                location = state.location,
+                canCheck = state.canCheck,
+                onFabricSelected = viewModel::selectFabric,
+                onCrowdingSelected = viewModel::selectCrowding,
+                onSpotSelected = viewModel::selectSpot,
+                onLocationClick = viewModel::openCityDialog,
+                onCheck = viewModel::check,
+            )
+        }
+    }
 
     state.cityDialog?.let { dialog ->
         CityDialog(

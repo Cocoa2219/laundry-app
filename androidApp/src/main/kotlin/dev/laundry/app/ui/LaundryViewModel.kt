@@ -21,6 +21,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import kotlin.time.Clock
@@ -47,14 +48,24 @@ data class CityDialogUi(
     val searchFailed: Boolean = false,
 )
 
+data class CheckResult(
+    val recommendation: Recommendation,
+    /** "Now" at check time, in the forecast's local time; finish times on a later date say so. */
+    val checkedAt: LocalDateTime,
+    /** Set when the network failed and the cached forecast was used: when it was fetched. */
+    val offlineForecastFrom: LocalDateTime?,
+)
+
 data class LaundryUiState(
     val load: Load = LoadPreferences.DEFAULT,
     val location: LocationUi = LocationUi.Loading,
     /** Null when the city dialog is closed. */
     val cityDialog: CityDialogUi? = null,
+    /** True while the result screen is shown (loading, error or result). */
+    val showingResult: Boolean = false,
     val checking: Boolean = false,
     val checkFailed: Boolean = false,
-    val recommendation: Recommendation? = null,
+    val result: CheckResult? = null,
 ) {
     val canCheck: Boolean get() = location is LocationUi.Found && !checking
 }
@@ -134,16 +145,25 @@ class LaundryViewModel(
 
     fun check() {
         if (!_state.value.canCheck) return
-        _state.update { it.copy(checking = true, checkFailed = false) }
+        _state.update { it.copy(showingResult = true, checking = true, checkFailed = false, result = null) }
         viewModelScope.launch {
             try {
                 when (val resolved = locations.resolve()) {
-                    ResolvedLocation.NeedsCity -> showNeedsCity()
+                    ResolvedLocation.NeedsCity -> {
+                        _state.update { it.copy(showingResult = false) }
+                        // The user just asked for a result, so ask for a city even if asked before.
+                        showNeedsCity(openDialog = true)
+                    }
                     is ResolvedLocation.Found -> {
                         val forecast = weather.getForecast(resolved.point)
-                        val now = clock.now().toLocalDateTime(timeZoneOrDefault(forecast.timezone))
-                        val recommendation = recommend(forecast, _state.value.load, now)
-                        _state.update { it.copy(recommendation = recommendation) }
+                        val zone = timeZoneOrDefault(forecast.timezone)
+                        val now = clock.now().toLocalDateTime(zone)
+                        val result = CheckResult(
+                            recommendation = recommend(forecast, _state.value.load, now),
+                            checkedAt = now,
+                            offlineForecastFrom = if (forecast.fromCache) forecast.fetchedAt.toLocalDateTime(zone) else null,
+                        )
+                        _state.update { it.copy(result = result) }
                     }
                 }
             } catch (e: WeatherUnavailableException) {
@@ -154,8 +174,10 @@ class LaundryViewModel(
         }
     }
 
-    private fun showNeedsCity() {
-        val openDialog = !cityPromptShown
+    /** Back from the result screen to the input screen. */
+    fun closeResult() = _state.update { it.copy(showingResult = false, checkFailed = false) }
+
+    private fun showNeedsCity(openDialog: Boolean = !cityPromptShown) {
         cityPromptShown = true
         _state.update {
             it.copy(
@@ -166,7 +188,7 @@ class LaundryViewModel(
     }
 
     private fun updateLoad(change: (Load) -> Load) {
-        _state.update { it.copy(load = change(it.load), recommendation = null) }
+        _state.update { it.copy(load = change(it.load), result = null) }
         val load = _state.value.load
         viewModelScope.launch { loadPreferences.save(load) }
     }

@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -20,7 +19,6 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ButtonGroupDefaults
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
-import androidx.compose.material3.LoadingIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -32,13 +30,12 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
-import androidx.compose.ui.semantics.liveRegion
-import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import dev.laundry.app.R
 import dev.laundry.app.ui.LocationUi
+import dev.laundry.app.ui.labelRes
 import dev.laundry.drying.Crowding
 import dev.laundry.drying.Fabric
 import dev.laundry.drying.Load
@@ -50,9 +47,7 @@ import dev.laundry.drying.Spot
 fun InputScreen(
     load: Load,
     location: LocationUi,
-    checking: Boolean,
     canCheck: Boolean,
-    checkFailed: Boolean,
     onFabricSelected: (Fabric) -> Unit,
     onCrowdingSelected: (Crowding) -> Unit,
     onSpotSelected: (Spot) -> Unit,
@@ -103,15 +98,7 @@ fun InputScreen(
                     )
                 }
 
-                CheckButton(checking = checking, enabled = canCheck, onClick = onCheck)
-                if (checkFailed) {
-                    Text(
-                        text = stringResource(R.string.input_check_failed),
-                        color = MaterialTheme.colorScheme.error,
-                        style = MaterialTheme.typography.bodyMedium,
-                        modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
-                    )
-                }
+                CheckButton(enabled = canCheck, onClick = onCheck)
             }
         }
     }
@@ -208,7 +195,7 @@ private fun <T> ConnectedChoice(
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
-private fun CheckButton(checking: Boolean, enabled: Boolean, onClick: () -> Unit) {
+private fun CheckButton(enabled: Boolean, onClick: () -> Unit) {
     val height = ButtonDefaults.MediumContainerHeight
     Button(
         onClick = onClick,
@@ -217,35 +204,6 @@ private fun CheckButton(checking: Boolean, enabled: Boolean, onClick: () -> Unit
         contentPadding = ButtonDefaults.contentPaddingFor(height),
         modifier = Modifier.fillMaxWidth().heightIn(min = height),
     ) {
-        if (checking) {
-            // Keeps the button's height while the forecast loads.
-            LoadingIndicator(modifier = Modifier.size(ButtonDefaults.MediumIconSize * 1.5f))
-        } else {
-            Text(stringResource(R.string.input_check), style = ButtonDefaults.textStyleFor(height))
-        }
+        Text(stringResource(R.string.input_check), style = ButtonDefaults.textStyleFor(height))
     }
 }
-
-private val Fabric.labelRes: Int
-    get() = when (this) {
-        Fabric.THIN_TOP -> R.string.fabric_thin_top
-        Fabric.TSHIRT -> R.string.fabric_tshirt
-        Fabric.TOWEL -> R.string.fabric_towel
-        Fabric.HOODIE -> R.string.fabric_hoodie
-        Fabric.JEANS -> R.string.fabric_jeans
-        Fabric.BEDDING -> R.string.fabric_bedding
-    }
-
-private val Crowding.labelRes: Int
-    get() = when (this) {
-        Crowding.SPACED -> R.string.crowding_spaced
-        Crowding.NORMAL -> R.string.crowding_normal
-        Crowding.CROWDED -> R.string.crowding_crowded
-    }
-
-private val Spot.labelRes: Int
-    get() = when (this) {
-        Spot.OPEN_YARD -> R.string.spot_open_yard
-        Spot.BALCONY -> R.string.spot_balcony
-        Spot.INDOOR -> R.string.spot_indoor
-    }

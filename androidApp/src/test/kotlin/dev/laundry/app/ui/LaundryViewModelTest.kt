@@ -27,6 +27,7 @@ import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
+import kotlinx.datetime.LocalDateTime
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
@@ -59,24 +60,28 @@ class LaundryViewModelTest {
             transform(state.value).also { state.value = it }
     }
 
-    private class NoCache : ForecastCache {
-        override suspend fun read(): CachedForecast? = null
-        override suspend fun write(entry: CachedForecast) = Unit
+    private class MemoryCache : ForecastCache {
+        var entry: CachedForecast? = null
+        override suspend fun read() = entry
+        override suspend fun write(entry: CachedForecast) {
+            this.entry = entry
+        }
     }
 
     private fun viewModel(
         settings: MemoryStore = MemoryStore(),
-        deviceFix: GeoPoint? = null,
-        online: Boolean = true,
+        deviceFix: () -> GeoPoint? = { null },
+        online: () -> Boolean = { true },
+        cache: MemoryCache = MemoryCache(),
         search: suspend (String) -> List<Place> = { listOf(seoul) },
     ): LaundryViewModel {
         val engine = MockEngine {
-            if (!online) throw RuntimeException("offline")
+            if (!online()) throw RuntimeException("offline")
             respond(sunnyForecastJson(), headers = headersOf(HttpHeaders.ContentType, "application/json"))
         }
         return LaundryViewModel(
-            weather = WeatherRepository(OpenMeteoClient(HttpClient(engine)), NoCache(), clock),
-            locations = LocationRepository(settings) { deviceFix },
+            weather = WeatherRepository(OpenMeteoClient(HttpClient(engine)), cache, clock),
+            locations = LocationRepository(settings) { deviceFix() },
             loadPreferences = LoadPreferences(settings),
             searchPlaces = search,
             clock = clock,
@@ -88,7 +93,7 @@ class LaundryViewModelTest {
 
     @Test
     fun deviceChoice_waitsForPermissionThenUsesDeviceFix() = runTest {
-        val vm = viewModel(deviceFix = GeoPoint(37.57, 126.98))
+        val vm = viewModel(deviceFix = { GeoPoint(37.57, 126.98) })
         assertEquals(LocationUi.AwaitingPermission, vm.awaitIdle().location)
 
         vm.onLocationPermissionHandled()
@@ -98,7 +103,7 @@ class LaundryViewModelTest {
 
     @Test
     fun noDeviceFix_needsCityAndOpensDialogOnlyOnce() = runTest {
-        val vm = viewModel(deviceFix = null)
+        val vm = viewModel(deviceFix = { null })
         vm.awaitIdle()
 
         vm.onLocationPermissionHandled()
@@ -148,21 +153,74 @@ class LaundryViewModelTest {
         vm.check()
         val done = vm.awaitIdle()
 
-        assertEquals(Verdict.HANG_OUT, done.recommendation?.verdict)
+        assertEquals(Verdict.HANG_OUT, done.result?.recommendation?.verdict)
         assertTrue(!done.checkFailed)
     }
 
     @Test
     fun check_offlineWithoutCache_reportsFailure() = runTest {
-        val vm = viewModel(online = false)
+        val vm = viewModel(online = { false })
         vm.awaitIdle()
         vm.chooseCity(seoul)
 
         vm.check()
         val done = vm.awaitIdle()
 
+        assertTrue(done.showingResult)
         assertTrue(done.checkFailed)
-        assertNull(done.recommendation)
+        assertNull(done.result)
+    }
+
+    @Test
+    fun check_offlineWithCache_saysWhichForecastWasUsed() = runTest {
+        var online = true
+        val vm = viewModel(online = { online })
+        vm.awaitIdle()
+        vm.chooseCity(seoul)
+        vm.check()
+        vm.awaitIdle()
+
+        online = false
+        vm.check()
+        val result = assertNotNull(vm.awaitIdle().result)
+
+        // Cached at the fixed clock's time: 07:30 in Seoul.
+        assertEquals(LocalDateTime(2026, 7, 1, 7, 30), result.offlineForecastFrom)
+    }
+
+    @Test
+    fun check_opensResultScreen_backReturnsToInput() = runTest {
+        val vm = viewModel()
+        vm.awaitIdle()
+        vm.chooseCity(seoul)
+
+        vm.check()
+        assertTrue(vm.awaitIdle().showingResult)
+        assertNull(vm.state.value.result?.offlineForecastFrom)
+
+        vm.closeResult()
+        assertTrue(!vm.state.value.showingResult)
+    }
+
+    @Test
+    fun check_whenDeviceFixIsGone_staysOnInputAndAsksForCityAgain() = runTest {
+        var fix: GeoPoint? = null
+        val vm = viewModel(deviceFix = { fix })
+        vm.awaitIdle()
+        vm.onLocationPermissionHandled()
+        vm.awaitIdle()
+        vm.dismissCityDialog() // the automatic prompt has now been used up
+        fix = GeoPoint(37.57, 126.98)
+        vm.onLocationPermissionHandled()
+        vm.awaitIdle()
+
+        fix = null
+        vm.check()
+        val done = vm.awaitIdle()
+
+        assertTrue(!done.showingResult)
+        assertEquals(LocationUi.NeedsCity, done.location)
+        assertNotNull(done.cityDialog)
     }
 
     @Test
@@ -176,7 +234,7 @@ class LaundryViewModelTest {
 
         vm.selectFabric(Fabric.JEANS)
 
-        assertNull(vm.state.value.recommendation)
+        assertNull(vm.state.value.result)
         assertEquals(Fabric.JEANS, viewModel(settings).awaitIdle().load.fabric)
     }
 

@@ -8,7 +8,6 @@
     <string name="input_crowding_label">How full is the rack?</string>
     <string name="input_spot_label">Where?</string>
     <string name="input_check">Check today</string>
-    <string name="input_check_failed">Couldn\'t get the forecast. Check your connection and try again.</string>
 
     <string name="fabric_thin_top">Thin top</string>
     <string name="fabric_tshirt">T-shirt</string>
@@ -38,4 +37,50 @@
     <string name="city_dialog_failed">Search failed. Check your connection and try again.</string>
     <string name="city_dialog_use_device">Use current location</string>
     <string name="city_dialog_cancel">Cancel</string>
+
+
+    <string name="result_back">Back</string>
+    <string name="result_title">%1$s · %2$s</string>
+    <string name="result_checking">Checking today\'s forecast…</string>
+    <string name="result_failed">Couldn\'t get the forecast and there\'s no saved one for this location. Check your connection and try again.</string>
+    <string name="result_retry">Retry</string>
+    <string name="result_offline">Offline: using the forecast from %1$s.</string>
+
+    <string name="verdict_hang_out">Hang it out</string>
+    <string name="verdict_risky">Risky today</string>
+    <string name="verdict_indoor">Dry it indoors</string>
+    <string name="verdict_dryer">Use the dryer</string>
+    <string name="verdict_hang_out_body">Hang it out by %1$s and it should be dry around %2$s.</string>
+    <string name="verdict_risky_body">It can dry outside, but only just: hang it out by %1$s and take it in around %2$s.</string>
+    <string name="verdict_indoor_body">It won\'t dry outside today. Indoors, it should be dry around %1$s.</string>
+    <string name="verdict_dryer_body">It won\'t dry outside today, and indoors would take more than 12 hours.</string>
+    <string name="verdict_indoor_chosen_title">Dry around %1$s</string>
+    <string name="verdict_indoor_chosen_body">Drying indoors at steady room conditions.</string>
+    <string name="verdict_dryer_chosen_body">Indoors would take more than 12 hours.</string>
+    <string name="outdoor_hint">Outside would be faster today: hang it out in a yard by %1$s and it should be dry around %2$s.</string>
+
+    <string name="result_hang_by">Hang by</string>
+    <string name="result_dry_around">Dry around</string>
+    <string name="result_range">%1$s – %2$s</string>
+    <string name="result_range_open">%1$s or later</string>
+    <string name="result_tomorrow">tomorrow %1$s</string>
+
+    <string name="why_title">Why?</string>
+    <string name="why_expand">Show why</string>
+    <string name="why_collapse">Hide why</string>
+    <string name="why_humidity">Humidity</string>
+    <string name="why_wind">Wind</string>
+    <string name="why_sun">Sun</string>
+    <string name="why_humidity_value">%1$d%%</string>
+    <string name="why_wind_value">%1$.1f m/s</string>
+    <string name="why_sun_value">%1$s (%2$d W/m²)</string>
+    <string name="why_sun_overcast">Overcast</string>
+    <string name="why_sun_some">Some sun</string>
+    <string name="why_sun_sunny">Sunny</string>
+    <string name="why_sun_strong">Strong sun</string>
+    <string name="why_cutoff_rain">Rain is expected from %1$s, so it has to be in before then.</string>
+    <string name="why_cutoff_night">Drying stops around %1$s, an hour after sunset.</string>
+    <string name="why_cutoff_no_data">The forecast has no data after %1$s.</string>
+    <string name="why_indoor">Indoors uses steady room conditions: 22 °C and 55%% humidity, no wind or sun.</string>
+    <string name="why_averages">Averages while it dries:</string>
 </resources>
