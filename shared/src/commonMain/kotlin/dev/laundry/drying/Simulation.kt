@@ -101,4 +101,4 @@ internal fun LocalDateTime.plusMinutes(minutes: Double): LocalDateTime =
 internal fun minutesBetween(from: LocalDateTime, to: LocalDateTime): Double =
     (to.toInstant(TimeZone.UTC) - from.toInstant(TimeZone.UTC)).inWholeSeconds / 60.0
 
-private fun LocalDateTime.truncatedToHour(): LocalDateTime = LocalDateTime(date, LocalTime(hour, 0))
+internal fun LocalDateTime.truncatedToHour(): LocalDateTime = LocalDateTime(date, LocalTime(hour, 0))
