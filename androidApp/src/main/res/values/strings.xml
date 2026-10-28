@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Laundry</string>
+
+    <string name="input_title">What are you drying?</string>
+    <string name="input_fabric_label">Slowest item</string>
+    <string name="input_fabric_hint">The load is done when this one is dry.</string>
+    <string name="input_crowding_label">How full is the rack?</string>
+    <string name="input_spot_label">Where?</string>
+    <string name="input_check">Check today</string>
+    <string name="input_check_failed">Couldn\'t get the forecast. Check your connection and try again.</string>
+
+    <string name="fabric_thin_top">Thin top</string>
+    <string name="fabric_tshirt">T-shirt</string>
+    <string name="fabric_towel">Towel</string>
+    <string name="fabric_hoodie">Hoodie</string>
+    <string name="fabric_jeans">Jeans</string>
+    <string name="fabric_bedding">Bedding</string>
+
+    <string name="crowding_spaced">Spaced</string>
+    <string name="crowding_normal">Normal</string>
+    <string name="crowding_crowded">Crowded</string>
+
+    <string name="spot_open_yard">Yard</string>
+    <string name="spot_balcony">Balcony</string>
+    <string name="spot_indoor">Indoors</string>
+
+    <string name="location_loading">Finding location…</string>
+    <string name="location_current">Current location</string>
+    <string name="location_set">Set location</string>
+    <string name="location_change_description">Change location</string>
+
+    <string name="city_dialog_title">Your city</string>
+    <string name="city_dialog_body">Location isn\'t available. Enter a city to use for the forecast.</string>
+    <string name="city_dialog_field">City</string>
+    <string name="city_dialog_search">Search</string>
+    <string name="city_dialog_no_results">No places found. Try another spelling.</string>
+    <string name="city_dialog_failed">Search failed. Check your connection and try again.</string>
+    <string name="city_dialog_use_device">Use current location</string>
+    <string name="city_dialog_cancel">Cancel</string>
+</resources>

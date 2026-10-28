@@ -3,6 +3,7 @@ package dev.laundry.app
 import android.content.Context
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import dev.laundry.data.DataStoreForecastCache
+import dev.laundry.data.LoadPreferences
 import dev.laundry.data.LocationRepository
 import dev.laundry.weather.OpenMeteoClient
 import dev.laundry.weather.WeatherRepository
@@ -28,6 +29,8 @@ class AppContainer(context: Context) {
     val weatherRepository = WeatherRepository(openMeteoClient, DataStoreForecastCache(weatherCacheStore))
 
     val locationRepository = LocationRepository(settingsStore, AndroidDeviceLocationSource(appContext))
+
+    val loadPreferences = LoadPreferences(settingsStore)
 
     suspend fun searchPlaces(name: String) = openMeteoClient.searchPlaces(name)
 }
