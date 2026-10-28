@@ -1,6 +1,7 @@
 plugins {
     alias(libs.plugins.kotlin.multiplatform)
     alias(libs.plugins.android.multiplatform.library)
+    alias(libs.plugins.kotlin.serialization)
 }
 
 kotlin {
@@ -14,8 +15,18 @@ kotlin {
     jvm()
 
     sourceSets {
+        commonMain.dependencies {
+            // DataStore types (DataStore<Preferences>) appear in data/ constructors.
+            api(libs.androidx.datastore.preferences.core)
+            api(libs.ktor.client.core)
+            api(libs.kotlinx.datetime)
+            implementation(libs.kotlinx.coroutines.core)
+            implementation(libs.kotlinx.serialization.json)
+        }
         commonTest.dependencies {
             implementation(libs.kotlin.test)
+            implementation(libs.kotlinx.coroutines.test)
+            implementation(libs.ktor.client.mock)
         }
     }
 }

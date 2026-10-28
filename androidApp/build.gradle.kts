@@ -28,6 +28,8 @@ android {
 dependencies {
     implementation(projects.shared)
     implementation(libs.androidx.activity.compose)
+    implementation(libs.androidx.core)
+    implementation(libs.ktor.client.okhttp)
     implementation(libs.compose.runtime)
     implementation(libs.compose.foundation)
     implementation(libs.compose.ui)
