@@ -18,7 +18,10 @@ import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ButtonGroupDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -35,7 +38,9 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import dev.laundry.app.R
 import dev.laundry.app.ui.LocationUi
+import dev.laundry.app.ui.PendingFeedbackUi
 import dev.laundry.app.ui.labelRes
+import dev.laundry.app.ui.timeText
 import dev.laundry.drying.Crowding
 import dev.laundry.drying.Fabric
 import dev.laundry.drying.Load
@@ -48,6 +53,8 @@ fun InputScreen(
     load: Load,
     location: LocationUi,
     canCheck: Boolean,
+    pendingFeedback: PendingFeedbackUi?,
+    onAnswerFeedback: () -> Unit,
     onFabricSelected: (Fabric) -> Unit,
     onCrowdingSelected: (Crowding) -> Unit,
     onSpotSelected: (Spot) -> Unit,
@@ -69,6 +76,9 @@ fun InputScreen(
                     .padding(horizontal = 16.dp, vertical = 24.dp),
                 verticalArrangement = Arrangement.spacedBy(28.dp),
             ) {
+                if (pendingFeedback != null) {
+                    PendingFeedbackCard(pendingFeedback, onAnswerFeedback)
+                }
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Text(
                         text = stringResource(R.string.input_title),
@@ -99,6 +109,34 @@ fun InputScreen(
                 }
 
                 CheckButton(enabled = canCheck, onClick = onCheck)
+            }
+        }
+    }
+}
+
+/** Shown until the last hang (within 24 h) has its "Did it dry?" answer. */
+@Composable
+private fun PendingFeedbackCard(pending: PendingFeedbackUi, onAnswer: () -> Unit) {
+    val fabric = stringResource(pending.fabric.labelRes).lowercase()
+    // Hang times are always today or yesterday, so the plain clock time is enough here.
+    val hungAt = timeText(pending.hangTime, today = pending.hangTime.date)
+    Card(
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.tertiaryContainer,
+            contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
+        ),
+        shape = MaterialTheme.shapes.large,
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text(
+                text = stringResource(R.string.pending_title),
+                style = MaterialTheme.typography.titleMedium,
+                modifier = Modifier.semantics { heading() },
+            )
+            Text(stringResource(R.string.pending_body, fabric, hungAt), style = MaterialTheme.typography.bodyLarge)
+            FilledTonalButton(onClick = onAnswer, modifier = Modifier.align(Alignment.End)) {
+                Text(stringResource(R.string.pending_answer))
             }
         }
     }

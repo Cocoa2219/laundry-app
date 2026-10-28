@@ -27,7 +27,16 @@ import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
+import dev.laundry.data.DryResult
+import dev.laundry.data.FeedbackLog
+import dev.laundry.data.FeedbackRecord
+import dev.laundry.data.WeatherSource
+import dev.laundry.drying.Crowding
+import dev.laundry.drying.Load
+import dev.laundry.drying.Spot
+import dev.laundry.weather.Forecast
 import kotlinx.datetime.LocalDateTime
+import kotlinx.datetime.LocalTime
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
@@ -42,10 +51,39 @@ import kotlin.time.Instant
 class LaundryViewModelTest {
     private val seoul = Place("Seoul", "Seoul", "South Korea", GeoPoint(37.57, 126.98))
 
-    // 2026-07-01 07:30 in Seoul (UTC+9).
+    /** "Now" for the test, as UTC; 22:30Z is 07:30 the next day in Seoul (UTC+9). */
+    private var now = Instant.parse("2026-06-30T22:30:00Z")
     private val clock = object : Clock {
-        override fun now() = Instant.parse("2026-06-30T22:30:00Z")
+        override fun now() = this@LaundryViewModelTest.now
     }
+
+    /** In-memory [FeedbackLog] that records what the ViewModel asked of it. */
+    private class FakeFeedbackLog : FeedbackLog {
+        val records = mutableMapOf<Long, FeedbackRecord>()
+        private var nextId = 1L
+
+        override suspend fun recordHang(load: Load, point: GeoPoint, hangTime: LocalDateTime, forecast: Forecast): Long {
+            val id = nextId++
+            records[id] = FeedbackRecord(
+                id, load, point, hangTime, predictedFinish = null, checkTime = null, result = null,
+                actualFinish = null, weather = emptyList(), weatherSource = WeatherSource.FORECAST,
+            )
+            return id
+        }
+
+        override suspend fun deleteHang(id: Long) {
+            records.remove(id)
+        }
+
+        override suspend fun latestUnanswered(now: LocalDateTime) =
+            records.values.filter { it.result == null }.maxByOrNull { it.hangTime }
+
+        override suspend fun answer(id: Long, result: DryResult, checkTime: LocalDateTime, actualFinish: LocalDateTime?) {
+            records[id] = records.getValue(id).copy(result = result, checkTime = checkTime, actualFinish = actualFinish)
+        }
+    }
+
+    private val feedback = FakeFeedbackLog()
 
     @BeforeTest
     fun setUp() = Dispatchers.setMain(UnconfinedTestDispatcher())
@@ -84,8 +122,108 @@ class LaundryViewModelTest {
             locations = LocationRepository(settings) { deviceFix() },
             loadPreferences = LoadPreferences(settings),
             searchPlaces = search,
+            feedback = feedback,
             clock = clock,
         )
+    }
+
+    /** A ViewModel with Seoul chosen and a finished check for [load]. */
+    private suspend fun checkedViewModel(load: Load? = null): LaundryViewModel {
+        val vm = viewModel()
+        vm.awaitIdle()
+        vm.chooseCity(seoul)
+        load?.let {
+            vm.selectFabric(it.fabric)
+            vm.selectCrowding(it.crowding)
+            vm.selectSpot(it.spot)
+        }
+        vm.check()
+        vm.awaitIdle()
+        return vm
+    }
+
+    @Test
+    fun markHung_recordsTheLoadAndOffersUndo() = runTest {
+        val vm = checkedViewModel()
+
+        vm.markHung()
+        val state = vm.state.first { it.undoOffer != null }
+
+        val record = feedback.records.values.single()
+        assertEquals(state.load, record.load)
+        assertEquals(LocalDateTime(2026, 7, 1, 7, 30), record.hangTime)
+        assertEquals(record.hangTime, state.hungAt)
+        assertEquals(PendingFeedbackUi(record.id, state.load.fabric, record.hangTime), state.pendingFeedback)
+    }
+
+    @Test
+    fun markHung_whenAdvisedIndoors_recordsIndoorSpot() = runTest {
+        now = Instant.parse("2026-07-01T07:00:00Z") // 16:00 in Seoul: no outdoor starts left
+        val vm = checkedViewModel()
+        assertEquals(Verdict.INDOOR, vm.state.value.result?.recommendation?.verdict)
+
+        vm.markHung()
+        vm.state.first { it.undoOffer != null }
+
+        assertEquals(Spot.INDOOR, feedback.records.values.single().load.spot)
+    }
+
+    @Test
+    fun markHung_dryerVerdict_recordsNothing() = runTest {
+        now = Instant.parse("2026-07-01T07:00:00Z")
+        val vm = checkedViewModel(Load(Fabric.BEDDING, Crowding.CROWDED, Spot.OPEN_YARD))
+        assertEquals(Verdict.DRYER, vm.state.value.result?.recommendation?.verdict)
+
+        vm.markHung()
+
+        assertTrue(feedback.records.isEmpty())
+        assertNull(vm.state.value.hungAt)
+    }
+
+    @Test
+    fun undo_deletesTheRecord() = runTest {
+        val vm = checkedViewModel()
+        vm.markHung()
+        val id = vm.state.first { it.undoOffer != null }.undoOffer!!
+
+        vm.undoHang(id)
+        val state = vm.state.first { it.pendingFeedback == null }
+
+        assertTrue(feedback.records.isEmpty())
+        assertNull(state.hungAt)
+        assertNull(state.undoOffer)
+    }
+
+    @Test
+    fun submitFeedback_savesAnswerWithDryTimeAndClearsPending() = runTest {
+        val vm = checkedViewModel()
+        vm.markHung()
+        vm.state.first { it.pendingFeedback != null }
+        now = Instant.parse("2026-07-01T05:00:00Z") // 14:00 in Seoul
+
+        vm.openFeedback()
+        vm.submitFeedback(DryResult.DRY, driedAt = LocalTime(12, 40))
+        val state = vm.state.first { it.feedbackDialog == null && it.pendingFeedback == null }
+
+        val record = feedback.records.values.single()
+        assertEquals(DryResult.DRY, record.result)
+        assertEquals(LocalDateTime(2026, 7, 1, 14, 0), record.checkTime)
+        assertEquals(LocalDateTime(2026, 7, 1, 12, 40), record.actualFinish)
+        assertNull(state.pendingFeedback)
+    }
+
+    @Test
+    fun submitFeedback_dryTimeInTheFuture_isDropped() = runTest {
+        val vm = checkedViewModel()
+        vm.markHung()
+        vm.state.first { it.pendingFeedback != null }
+        now = Instant.parse("2026-07-01T03:00:00Z") // 12:00 in Seoul
+
+        vm.openFeedback()
+        vm.submitFeedback(DryResult.DRY, driedAt = LocalTime(13, 0))
+        vm.state.first { it.feedbackDialog == null }
+
+        assertNull(feedback.records.values.single().actualFinish)
     }
 
     private suspend fun LaundryViewModel.awaitIdle() =

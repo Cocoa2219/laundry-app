@@ -1,6 +1,5 @@
 package dev.laundry.app.ui.result
 
-import android.text.format.DateFormat
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
@@ -12,11 +11,13 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ElevatedCard
@@ -27,18 +28,23 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.LoadingIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
@@ -50,6 +56,7 @@ import androidx.compose.ui.unit.dp
 import dev.laundry.app.R
 import dev.laundry.app.ui.CheckResult
 import dev.laundry.app.ui.labelRes
+import dev.laundry.app.ui.timeText
 import dev.laundry.drying.CutoffReason
 import dev.laundry.drying.FinishRange
 import dev.laundry.drying.Load
@@ -59,8 +66,6 @@ import dev.laundry.drying.Verdict
 import dev.laundry.drying.Why
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalDateTime
-import kotlinx.datetime.toJavaLocalDateTime
-import java.time.format.DateTimeFormatter
 import kotlin.math.roundToInt
 
 /** Stateless result screen: loading, the inline error with Retry, or the recommendation. */
@@ -71,12 +76,27 @@ fun ResultScreen(
     checking: Boolean,
     failed: Boolean,
     result: CheckResult?,
+    hungAt: LocalDateTime?,
+    undoOffer: Long?,
     onBack: () -> Unit,
     onRetry: () -> Unit,
+    onHang: () -> Unit,
+    onUndo: (Long) -> Unit,
+    onUndoOfferHandled: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val snackbarHostState = remember { SnackbarHostState() }
+    val savedMessage = stringResource(R.string.hang_saved)
+    val undoLabel = stringResource(R.string.hang_undo)
+    LaunchedEffect(undoOffer) {
+        val recordId = undoOffer ?: return@LaunchedEffect
+        val action = snackbarHostState.showSnackbar(savedMessage, actionLabel = undoLabel, duration = SnackbarDuration.Short)
+        if (action == SnackbarResult.ActionPerformed) onUndo(recordId) else onUndoOfferHandled()
+    }
+
     Scaffold(
         modifier = modifier,
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = {
@@ -103,12 +123,43 @@ fun ResultScreen(
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
                 when {
-                    result != null -> ResultContent(result, chosenIndoors = load.spot == Spot.INDOOR)
+                    result != null -> {
+                        ResultContent(result, chosenIndoors = load.spot == Spot.INDOOR)
+                        HangAction(result, hungAt, onHang)
+                    }
                     failed -> Failure(onRetry)
                     checking -> Checking()
                 }
             }
         }
+    }
+}
+
+/** "I hung it", or once tapped, when it was hung. Not offered when the advice is the dryer. */
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@Composable
+private fun HangAction(result: CheckResult, hungAt: LocalDateTime?, onHang: () -> Unit) {
+    val verdict = result.recommendation.verdict
+    if (verdict == Verdict.DRYER) return
+    if (hungAt != null) {
+        Text(
+            text = stringResource(R.string.hang_done, timeText(hungAt, result.checkedAt.date)),
+            style = MaterialTheme.typography.bodyLarge,
+            modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
+        )
+        return
+    }
+    val height = ButtonDefaults.MediumContainerHeight
+    Button(
+        onClick = onHang,
+        shapes = ButtonDefaults.shapesFor(height),
+        contentPadding = ButtonDefaults.contentPaddingFor(height),
+        modifier = Modifier.fillMaxWidth().heightIn(min = height),
+    ) {
+        Text(
+            text = stringResource(if (verdict == Verdict.INDOOR) R.string.hang_button_indoors else R.string.hang_button),
+            style = ButtonDefaults.textStyleFor(height),
+        )
     }
 }
 
@@ -328,12 +379,4 @@ private fun sunLabel(radiationWm2: Double): Int = when {
     radiationWm2 < 300 -> R.string.why_sun_some
     radiationWm2 < 600 -> R.string.why_sun_sunny
     else -> R.string.why_sun_strong
-}
-
-/** Clock time in the device's 12/24-hour style; prefixed with "tomorrow" when not on [today]. */
-@Composable
-private fun timeText(time: LocalDateTime, today: LocalDate): String {
-    val pattern = if (DateFormat.is24HourFormat(LocalContext.current)) "HH:mm" else "h:mm a"
-    val clock = DateTimeFormatter.ofPattern(pattern).format(time.toJavaLocalDateTime())
-    return if (time.date > today) stringResource(R.string.result_tomorrow, clock) else clock
 }

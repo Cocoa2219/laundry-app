@@ -17,6 +17,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.platform.LocalContext
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import dev.laundry.app.ui.feedback.FeedbackDialog
 import dev.laundry.app.ui.input.CityDialog
 import dev.laundry.app.ui.input.InputScreen
 import dev.laundry.app.ui.result.ResultScreen
@@ -57,14 +58,21 @@ fun LaundryApp(viewModel: LaundryViewModel) {
                 checking = state.checking,
                 failed = state.checkFailed,
                 result = state.result,
+                hungAt = state.hungAt,
+                undoOffer = state.undoOffer,
                 onBack = viewModel::closeResult,
                 onRetry = viewModel::check,
+                onHang = viewModel::markHung,
+                onUndo = viewModel::undoHang,
+                onUndoOfferHandled = viewModel::undoOfferHandled,
             )
         } else {
             InputScreen(
                 load = state.load,
                 location = state.location,
                 canCheck = state.canCheck,
+                pendingFeedback = state.pendingFeedback,
+                onAnswerFeedback = viewModel::openFeedback,
                 onFabricSelected = viewModel::selectFabric,
                 onCrowdingSelected = viewModel::selectCrowding,
                 onSpotSelected = viewModel::selectSpot,
@@ -81,6 +89,14 @@ fun LaundryApp(viewModel: LaundryViewModel) {
             onPlaceChosen = viewModel::chooseCity,
             onUseDeviceLocation = viewModel::useDeviceLocation,
             onDismiss = viewModel::dismissCityDialog,
+        )
+    }
+
+    state.feedbackDialog?.let { dialog ->
+        FeedbackDialog(
+            state = dialog,
+            onSubmit = viewModel::submitFeedback,
+            onDismiss = viewModel::dismissFeedback,
         )
     }
 }

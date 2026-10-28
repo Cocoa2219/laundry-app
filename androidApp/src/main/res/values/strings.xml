@@ -83,4 +83,24 @@
     <string name="why_cutoff_no_data">The forecast has no data after %1$s.</string>
     <string name="why_indoor">Indoors uses steady room conditions: 22 °C and 55%% humidity, no wind or sun.</string>
     <string name="why_averages">Averages while it dries:</string>
+
+
+    <string name="hang_button">I hung it</string>
+    <string name="hang_button_indoors">I hung it indoors</string>
+    <string name="hang_done">Hung at %1$s. You\'ll be asked how it went.</string>
+    <string name="hang_saved">Saved as hung.</string>
+    <string name="hang_undo">Undo</string>
+
+    <string name="pending_title">How did it go?</string>
+    <string name="pending_body">Your %1$s from %2$s: did it dry?</string>
+    <string name="pending_answer">Answer</string>
+
+    <string name="feedback_title">Did your %1$s dry?</string>
+    <string name="feedback_dry">Yes, it\'s dry</string>
+    <string name="feedback_damp">Still damp</string>
+    <string name="feedback_skipped">I brought it in early</string>
+    <string name="feedback_skipped_hint">Skipped loads aren\'t used to learn about your spot.</string>
+    <string name="feedback_know_time">I know roughly when it was dry</string>
+    <string name="feedback_save">Save</string>
+    <string name="feedback_later">Later</string>
 </resources>

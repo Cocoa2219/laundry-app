@@ -26,6 +26,7 @@ class MainActivity : ComponentActivity() {
                                 locations = container.locationRepository,
                                 loadPreferences = container.loadPreferences,
                                 searchPlaces = container::searchPlaces,
+                                feedback = container.feedbackRepository,
                             )
                         }
                     },
